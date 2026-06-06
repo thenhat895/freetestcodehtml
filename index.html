@@ -2,140 +2,145 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure AI Nexus</title>
+    <title>Secure HTML Previewer</title>
     <script src="https://cloudflare.com"></script>
     <style>
         * { box-sizing: border-box; font-family: sans-serif; }
         body { background: #0b0f19; color: #fff; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
         .box { background: #111827; padding: 12px; border-radius: 16px; border: 1px solid #1f2937; display: flex; flex-direction: column; flex: 1; overflow: hidden; }
         h3 { margin: 0 0 10px 0; color: #6366f1; text-align: center; font-size: 18px; }
-        label { font-size: 11px; color: #9ca3af; display: block; margin-top: 4px; font-weight: bold; }
-        input, select, textarea { width: 100%; padding: 8px 10px; margin: 2px 0 6px 0; background: #111827; border: 1px solid #374151; border-radius: 8px; color: #fff; font-size: 13px; }
-        button { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; font-weight: bold; border: none; padding: 10px; border-radius: 8px; cursor: pointer; }
-        #chat-box { flex: 1; border: 1px solid #1f2937; border-radius: 12px; overflow-y: auto; padding: 10px; background: #0b0f19; display: flex; flex-direction: column; gap: 8px; }
-        .msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 13px; word-wrap: break-word; }
-        .user { background: #6366f1; align-self: flex-end; }
-        .ai { background: #1f2937; align-self: flex-start; border: 1px solid #374151; }
-        .input-area { display: flex; gap: 6px; margin-top: 8px; }
-        .input-area textarea { flex: 1; height: 40px; resize: none; margin: 0; }
+        label { font-size: 11px; color: #9ca3af; display: block; margin-bottom: 4px; font-weight: bold; }
+        textarea, input { width: 100%; padding: 10px; background: #1f2937; border: 1px solid #374151; border-radius: 8px; color: #fff; font-size: 13px; }
+        textarea { flex: 1; min-height: 120px; color: #34d399; font-family: monospace; resize: none; }
+        input { margin-bottom: 8px; border-color: #6366f1; }
+        .btn-group { display: flex; gap: 6px; margin: 8px 0; }
+        button { flex: 1; padding: 10px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-clear { background: #ef4444; }
+        .btn-full { background: #6366f1; }
+        .btn-share { background: #10b981; }
+        #preview-container { flex: 1.2; background: #fff; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+        iframe { width: 100%; flex: 1; border: none; background: #fff; }
+        .fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 9999; }
+        .close-full { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 6px 12px; border-radius: 6px; display: none; z-index: 10000; }
         #share-url { background: #1f2937; padding: 8px; border-radius: 6px; font-size: 11px; color: #34d399; word-break: break-all; margin-bottom: 6px; display: none; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h3>SECURE AI NEXUS</h3>
+    <h3>SECURE HTML PREVIEW</h3>
     <div id="share-url" onclick="navigator.clipboard.writeText(this.innerText);alert('Copied link!')"></div>
 
-    <select id="preset" onchange="update()"></select>
-    <input type="text" id="endpoint" placeholder="Endpoint">
-    <input type="text" id="model" placeholder="Model Name">
-    <input type="password" id="key" placeholder="Enter API Key">
-    <input type="password" id="pass" placeholder="Enter Password to Protect Key">
-    <textarea id="prompt" rows="1">You are a helpful AI assistant.</textarea>
-    
-    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-        <button style="flex:1" onclick="check()">Verify Key</button>
-        <button style="flex:1; background:#10b981;" id="s-btn" onclick="share()">Get Secure Link</button>
+    <div id="editor-area">
+        <label>PASSWORD TO PROTECT CODE (SECRET):</label>
+        <input type="password" id="password" placeholder="••••••••">
+        <label>WRITE YOUR HTML CODE HERE:</label>
+        <textarea id="code" oninput="runCode()" placeholder="Type HTML code here..."></textarea>
     </div>
-    <p id="status" style="font-size:11px; text-align:center; margin:2px 0; font-weight:bold;"></p>
 
-    <div id="chat-box"></div>
-    <div class="input-area">
-        <textarea id="input" placeholder="Type a message..."></textarea>
-        <button style="background:#10b981; width:65px;" onclick="send()">Send</button>
+    <div class="btn-group">
+        <button class="btn-clear" id="clear-btn" onclick="clearCode()">Clear</button>
+        <button class="btn-share" id="share-btn" onclick="shareCode()">Get Share Link</button>
+        <button class="btn-full" onclick="toggleFull()">Full Screen</button>
+    </div>
+
+    <label>LIVE PREVIEW RESULT:</label>
+    <div id="preview-container">
+        <button id="close-btn" class="close-full" onclick="toggleFull()">Exit Full Screen</button>
+        <iframe id="output"></iframe>
     </div>
 </div>
 
 <script>
-    const ai = {
-        gemini: ["https://googleapis.com", "gemini-1.5-flash"],
-        openai: ["https://openai.com", "gpt-4o-mini"],
-        groq: ["https://groq.com", "llama-3.3-70b-versatile"],
-        deepseek: ["https://deepseek.com", "deepseek-chat"]
-    };
-    const proxy = "https://corsproxy.io?", sel = document.getElementById('preset');
-    let decKey = "";
+    const codeArea = document.getElementById('code'), outputFrame = document.getElementById('output');
+    const container = document.getElementById('preview-container'), closeBtn = document.getElementById('close-btn');
+    const shareUrlDiv = document.getElementById('share-url'), shareBtn = document.getElementById('share-btn');
+    const passInput = document.getElementById('password'), editorArea = document.getElementById('editor-area');
 
-    Object.keys(ai).forEach(k => sel.add(new Option(k.toUpperCase(), k)));
-    function update() {
-        document.getElementById('endpoint').value = ai[sel.value][0];
-        document.getElementById('model').value = ai[sel.value][1];
+    const defaultCode = `<div style="text-align:center; margin-top:30px; font-family:sans-serif;">
+    <h1 style="color:#6366f1;">Protected View! 🔐</h1>
+    <p style="color:#555;">The source code of this page is completely hidden from F12.</p>
+</div>`;
+
+    function render(htmlText) {
+        const frameDoc = outputFrame.contentDocument || outputFrame.contentWindow.document;
+        frameDoc.open(); frameDoc.write(htmlText); frameDoc.close();
     }
-    update();
 
-    async function load() {
+    function runCode() {
+        render(codeArea.value);
+        localStorage.setItem('saved_html_code', codeArea.value);
+    }
+
+    async function loadSharedCode() {
         const id = new URLSearchParams(window.location.search).get('p');
-        if (!id) return;
-        document.getElementById('status').innerText = "⏳ Loading configuration...";
-        const res = await fetch(`https://kvbin.com{id}`);
-        if (res.ok) {
-            const data = await res.json();
-            sel.value = data.p; update();
-            document.getElementById('endpoint').value = data.ep;
-            document.getElementById('model').value = data.m;
-            document.getElementById('prompt').value = data.pr;
-            const p = prompt("Enter secret password to unlock AI Chat:");
-            if (p) {
-                try {
-                    decKey = CryptoJS.AES.decrypt(data.ek, p).toString(CryptoJS.enc.Utf8);
-                    if (decKey) {
-                        document.getElementById('status').innerText = "✅ Unlocked!";
-                        document.getElementById('key').value = "PROTECTED";
-                        document.getElementById('pass').value = p;
-                    } else { document.getElementById('status').innerText = "❌ Wrong Password!"; }
-                } catch(e) { document.getElementById('status').innerText = "❌ Error!"; }
-            }
+        if (id) {
+            render("<h3 style='color:#000;text-align:center;margin-top:20px;'>⏳ Loading secure view...</h3>");
+            try {
+                const res = await fetch(`https://kvbin.com{id}`);
+                if (res.ok) {
+                    let rawData = await res.text();
+                    if (rawData.startsWith("U2FsdGVkX1")) {
+                        const userPass = prompt("Enter secret password to view this web interface:");
+                        if (userPass) {
+                            try {
+                                const decryptedData = CryptoJS.AES.decrypt(rawData, userPass).toString(CryptoJS.enc.Utf8);
+                                if (decryptedData) {
+                                    // ẨN TOÀN BỘ KHUNG NHẬP CODE VÀ NÚT CHIA SẺ ĐỂ CHỐNG XEM TRỘM
+                                    editorArea.style.display = "none";
+                                    shareBtn.style.display = "none";
+                                    document.getElementById('clear-btn').style.display = "none";
+                                    render(decryptedData); // Chỉ nạp thẳng kết quả cho xem
+                                    return;
+                                }
+                            } catch (e) {}
+                        }
+                        render("<h3 style='color:red;text-align:center;margin-top:20px;'>❌ Access Denied: Wrong Password!</h3>");
+                    } else { codeArea.value = rawData; editorArea.style.display = "block"; runCode(); }
+                } else { render("❌ Link not found!"); }
+            } catch (err) { render("❌ Network error."); }
+        } else {
+            const savedCode = localStorage.getItem('saved_html_code');
+            codeArea.value = savedCode !== null ? savedCode : defaultCode;
+            editorArea.style.display = "block";
+            runCode();
         }
     }
-    load();
+    loadSharedCode();
 
-    async function call(txt, isChk = false) {
-        const p = sel.value, ep = document.getElementById('endpoint').value, m = document.getElementById('model').value, pr = document.getElementById('prompt').value;
-        const k = decKey || document.getElementById('key').value;
-        const isGem = p === 'gemini', url = isGem ? `${ep}${m}:generateContent?key=${k}` : ep;
-        const body = isGem ? { systemInstruction: { parts: [{ text: pr }] }, contents: [{ parts: [{ text: txt }] }] } : { model: m, messages: [{ role: "system", content: pr }, { role: "user", content: txt }] };
-        const headers = { "Content-Type": "application/json", ...(!isGem && { "Authorization": `Bearer ${k}` }) };
-        
-        const res = await fetch(proxy + encodeURIComponent(url), { method: 'POST', headers: headers, body: JSON.stringify(body) });
-        if (!res.ok) throw new Error();
-        const resData = await res.json();
-        return isChk ? true : (isGem ? resData.candidates[0].content.parts[0].text : resData.choices[0].message.content);
+    async function shareCode() {
+        let codeText = codeArea.value.trim(); if (!codeText) return alert("Code is empty!");
+        const password = passInput.value.trim();
+        if (password) { codeText = CryptoJS.AES.encrypt(codeText, password).toString(); }
+
+        shareBtn.innerText = "⏳ Hiding & Saving..."; shareBtn.disabled = true;
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentId = urlParams.get('p');
+        let url = "https://kvbin.com", method = "POST";
+        if (currentId) { url = `https://kvbin.com{currentId}`; method = "PUT"; }
+
+        try {
+            const res = await fetch(url, { method: method, headers: { "Content-Type": "text/plain" }, body: codeText });
+            if (res.ok) {
+                let finalId = currentId;
+                if (!currentId) { const data = await res.json(); finalId = data.id; }
+                const shareLink = `${window.location.origin}${window.location.pathname}?p=${finalId}`;
+                window.history.pushState({}, '', shareLink);
+                shareUrlDiv.innerText = shareLink; shareUrlDiv.style.display = "block";
+            } else { alert("Error saving!"); }
+        } catch (err) { alert("Network error!"); }
+        shareBtn.innerText = "Get Share Link"; shareBtn.disabled = false;
     }
 
-    async function check() {
-        const st = document.getElementById('status'); st.innerText = "⏳ Verifying...";
-        try { if (await call("hi", true)) st.innerText = "✅ Key is valid!"; } 
-        catch { st.innerText = "❌ Verification Failed!"; }
+    function clearCode() {
+        codeArea.value = ""; passInput.value = ""; localStorage.setItem('saved_html_code', "");
+        window.history.pushState({}, '', window.location.pathname); shareUrlDiv.style.display = "none";
+        runCode(); codeArea.focus();
     }
 
-    async function share() {
-        const k = decKey || document.getElementById('key').value, p = document.getElementById('pass').value;
-        if (!k || !p) return alert("Enter Key and Password first!");
-        const sBtn = document.getElementById('s-btn'); sBtn.innerText = "⏳ Saving...";
-        
-        const config = { p: sel.value, ep: document.getElementById('endpoint').value, m: document.getElementById('model').value, pr: document.getElementById('prompt').value, ek: CryptoJS.AES.encrypt(k, p).toString() };
-        const id = new URLSearchParams(window.location.search).get('p');
-        const res = await fetch(id ? `https://kvbin.com{id}` : "https://kvbin.com", { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(config) });
-        
-        if (res.ok) {
-            const finalId = id || (await res.json()).id;
-            const lnk = `${window.location.origin}${window.location.pathname}?p=${finalId}`;
-            window.history.pushState({}, '', lnk);
-            const box = document.getElementById('share-url'); box.innerText = lnk; box.style.display = "block";
-        } else { alert("Save failed!"); }
-        sBtn.innerText = "Get Secure Link";
-    }
-
-    async function send() {
-        const inp = document.getElementById('input'), box = document.getElementById('chat-box'), txt = inp.value.trim();
-        if (!txt) return; inp.value = "";
-        box.innerHTML += `<div class="msg user">${txt}</div><div class="msg ai" id="last">⚡ Thinking...</div>`;
-        box.scrollTop = box.scrollHeight;
-        try { const reply = await call(txt); document.getElementById('last').innerText = reply; } 
-        catch { document.getElementById('last').innerText = "❌ Chat Error!"; }
-        document.getElementById('last').removeAttribute('id');
-        box.scrollTop = box.scrollHeight;
+    function toggleFull() {
+        container.classList.toggle('fullscreen');
+        closeBtn.style.display = container.classList.contains('fullscreen') ? 'block' : 'none';
     }
 </script>
 </body>
