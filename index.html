@@ -1,46 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Nexus</title>
     <style>
         * { box-sizing: border-box; font-family: sans-serif; }
         body { background: #0b0f19; color: #fff; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
         .box { background: #111827; padding: 12px; border-radius: 16px; border: 1px solid #1f2937; display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-        h3 { margin: 0 0 10px 0; color: #6366f1; text-align: center; }
-        label { font-size: 11px; color: #9ca3af; display: block; margin-top: 5px; }
-        input, select, textarea { width: 100%; padding: 8px; margin: 3px 0; background: #111827; border: 1px solid #374151; border-radius: 6px; color: #fff; font-size: 13px; }
-        button { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; font-weight: bold; border: none; padding: 8px; border-radius: 6px; cursor: pointer; }
-        #chat-box { flex: 1; border: 1px solid #1f2937; border-radius: 10px; overflow-y: auto; padding: 10px; background: #0b0f19; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-        .msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 13px; word-wrap: break-word; }
+        h3 { margin: 0 0 10px 0; color: #6366f1; text-align: center; font-size: 18px; }
+        label { font-size: 11px; color: #9ca3af; display: block; margin-top: 4px; }
+        input, select, textarea { width: 100%; padding: 8px; margin: 2px 0 6px 0; background: #111827; border: 1px solid #374151; border-radius: 6px; color: #fff; font-size: 13px; }
+        button { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; font-weight: bold; border: none; padding: 10px; border-radius: 6px; cursor: pointer; }
+        #chat-box { flex: 1; border: 1px solid #1f2937; border-radius: 10px; overflow-y: auto; padding: 10px; background: #0b0f19; display: flex; flex-direction: column; gap: 6px; }
+        .msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 13px; word-wrap: break-word; line-height: 1.4; }
         .user { background: #6366f1; align-self: flex-end; border-bottom-right-radius: 2px; }
         .ai { background: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid #374151; }
         .input-area { display: flex; margin-top: 8px; gap: 6px; }
-        .input-area textarea { flex: 1; height: 38px; resize: none; }
+        .input-area textarea { flex: 1; height: 40px; resize: none; margin: 0; }
     </style>
 </head>
 <body>
 
 <div class="box">
     <h3>AI NEXUS</h3>
-    <label>Select AI:</label>
-    <select id="preset" onchange="update()"></select>
-    <input type="text" id="endpoint" placeholder="Endpoint">
+    
+    <label>Select Preset AI:</label>
+    <select id="preset" onchange="updatePreset()">
+        <option value="gemini">GEMINI (Google)</option>
+        <option value="openai">OPENAI (ChatGPT)</option>
+        <option value="claude">CLAUDE (Anthropic)</option>
+        <option value="groq">GROQ (Fast Llama)</option>
+        <option value="deepseek">DEEPSEEK (Chat)</option>
+    </select>
+    
+    <label>Custom Endpoint:</label>
+    <input type="text" id="endpoint" placeholder="API Endpoint">
+    
+    <label>Custom Model Name:</label>
     <input type="text" id="model" placeholder="Model Name">
-    <input type="password" id="key" placeholder="Paste API Key here">
-    <textarea id="prompt" rows="1" placeholder="System Prompt">You are a helpful AI.</textarea>
-    <button onclick="check()">Verify API Key</button>
-    <p id="status" style="font-size:11px; text-align:center; margin:4px 0; color:#9ca3af;"></p>
+    
+    <label>API Key:</label>
+    <input type="password" id="key" placeholder="Paste your real API Key here">
+    
+    <label>System Prompt:</label>
+    <textarea id="prompt" rows="1" placeholder="System Prompt">You are a helpful AI assistant.</textarea>
+    
+    <button onclick="checkKey()">Verify API Key</button>
+    <p id="status" style="font-size:11px; text-align:center; margin:4px 0; color:#9ca3af; font-weight:bold;"></p>
 
     <div id="chat-box"></div>
+    
     <div class="input-area">
         <textarea id="input" placeholder="Type a message..."></textarea>
-        <button style="background:#10b981; width:60px;" onclick="send()">Send</button>
+        <button style="background:#10b981; width:65px;" onclick="sendMsg()">Send</button>
     </div>
 </div>
 
 <script>
-    const ai = {
+    // Kho dữ liệu mẫu chuẩn cho 5 AI hàng đầu
+    const aiData = {
         gemini: ["https://googleapis.com", "gemini-1.5-flash"],
         openai: ["https://openai.com", "gpt-4o-mini"],
         claude: ["https://anthropic.com", "claude-3-5-sonnet-20241022"],
@@ -48,47 +67,119 @@
         deepseek: ["https://deepseek.com", "deepseek-chat"]
     };
 
-    const sel = document.getElementById('preset');
-    Object.keys(ai).forEach(k => sel.add(new Option(k.toUpperCase(), k)));
-
-    function update() {
-        document.getElementById('endpoint').value = ai[sel.value][0];
-        document.getElementById('model').value = ai[sel.value][1];
+    // Hàm tự điền thông tin mẫu khi đổi Select, nhưng cháu vẫn tự sửa chữ thoải mái được
+    function updatePreset() {
+        const selected = document.getElementById('preset').value;
+        document.getElementById('endpoint').value = aiData[selected][0];
+        document.getElementById('model').value = aiData[selected][1];
     }
-    update();
+    
+    // Chạy lần đầu khi mở app để tự điền Gemini
+    updatePreset();
 
-    async function call(txt, isCheck = false) {
-        const p = sel.value, k = document.getElementById('key').value, ep = document.getElementById('endpoint').value, m = document.getElementById('model').value, sp = document.getElementById('prompt').value;
-        const isGem = p === 'gemini', url = isGem ? `${ep}${m}:generateContent?key=${k}` : ep;
-        const body = isGem ? { systemInstruction: { parts: [{ text: sp }] }, contents: [{ parts: [{ text: txt }] }] } : { model: m, messages: [{ role: "system", content: sp }, { role: "user", content: txt }] };
+    // Hàm xử lý gọi API thật lên hệ thống máy chủ AI
+    async function apiCall(textValue, isVerification = false) {
+        const provider = document.getElementById('preset').value;
+        const apiKey = document.getElementById('key').value.trim();
+        const apiEndpoint = document.getElementById('endpoint').value.trim();
+        const modelName = document.getElementById('model').value.trim();
+        const systemPrompt = document.getElementById('prompt').value;
+
+        if (!apiKey) {
+            alert("Please enter your API Key first!");
+            throw new Error("Missing API Key");
+        }
+
+        const isGemini = provider === 'gemini';
+        // Tạo đường dẫn chuẩn: Gemini dùng cuối link (?key=), các AI khác dùng Header
+        const finalUrl = isGemini ? `${apiEndpoint}${modelName}:generateContent?key=${apiKey}` : apiEndpoint;
         
-        const res = await fetch(url, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', ...(!isGem && { 'Authorization': `Bearer ${k}` }) },
-            body: JSON.stringify(body)
+        // Tạo cấu trúc gói dữ liệu gửi đi (JSON Body)
+        let requestBody;
+        if (isGemini) {
+            requestBody = {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ parts: [{ text: textValue }] }]
+            };
+        } else {
+            requestBody = {
+                model: modelName,
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: textValue }
+                ]
+            };
+        }
+
+        // Thiết lập Header bảo mật
+        let headersList = { "Content-Type": "application/json" };
+        if (!isGemini) {
+            headersList["Authorization"] = `Bearer ${apiKey}`;
+        }
+
+        // Gửi yêu cầu thật lên Internet
+        const response = await fetch(finalUrl, {
+            method: 'POST',
+            headers: headersList,
+            body: JSON.stringify(requestBody)
         });
-        if (!res.ok) throw new Error();
-        const data = await response = await res.json();
-        return isCheck ? true : (isGem ? data.candidates[0].content.parts[0].text : data.choices[0].message.content);
+
+        if (!response.ok) {
+            throw new Error("API Error Status: " + response.status);
+        }
+
+        const resultData = await response.json();
+        
+        if (isVerification) return true;
+        
+        // Bóc tách văn bản trả về của từng loại AI
+        return isGemini ? resultData.candidates[0].content.parts[0].text : resultData.choices[0].message.content;
     }
 
-    async function check() {
-        const st = document.getElementById('status'); st.innerText = "⏳ Checking..."; st.style.color = "#9ca3af";
-        try { if (await call("hi", true)) { st.innerText = "✅ Success!"; st.style.color = "#10b981"; } } 
-        catch { st.innerText = "❌ Failed!"; st.style.color = "#ef4444"; }
+    // Hàm kiểm tra tính chính xác của thông tin khi bấm nút Verify
+    async function checkKey() {
+        const statusLabel = document.getElementById('status');
+        statusLabel.innerText = "⏳ Verifying with live server...";
+        statusLabel.style.color = "#9ca3af";
+        
+        try {
+            // Gửi một chữ "test" ẩn lên mạng để xem API có thật không
+            const success = await apiCall("test", true);
+            if (success) {
+                statusLabel.innerText = "✅ Connection Success! Ready to chat.";
+                statusLabel.style.color = "#10b981";
+            }
+        } catch (err) {
+            statusLabel.innerText = "❌ Verification Failed! Check Key/Endpoint.";
+            statusLabel.style.color = "#ef4444";
+        }
     }
 
-    async function send() {
-        const inp = document.getElementById('input'), box = document.getElementById('chat-box'), txt = inp.value.trim();
-        if (!txt) return;
-        inp.value = "";
+    // Hàm xử lý gửi tin nhắn ở khung chat công khai
+    async function sendMsg() {
+        const inputField = document.getElementById('input');
+        const chatBox = document.getElementById('chat-box');
+        const messageText = inputField.value.trim();
         
-        box.innerHTML += `<div class="msg user">${txt}</div><div class="msg ai" id="last">Thinking...</div>`;
-        box.scrollTop = box.scrollHeight;
+        if (!messageText) return;
+        inputField.value = ""; // Xóa sạch ô nhập ngay lập tức
         
-        try { const reply = await call(txt); document.getElementById('last').innerText = reply; } 
-        catch { document.getElementById('last').innerText = "❌ Error!"; }
-        document.getElementById('last').removeAttribute('id');
-        box.scrollTop = box.scrollHeight;
+        // Thêm tin nhắn của User vào khung hình
+        chatBox.innerHTML += `<div class="msg user">${messageText}</div>`;
+        
+        // Thêm bong bóng chờ của AI
+        const aiResponseId = "ai-" + Date.now();
+        chatBox.innerHTML += `<div class="msg ai" id="${aiResponseId}">⚡ Thinking...</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        try {
+            const aiReplyText = await apiCall(messageText, false);
+            document.getElementById(aiResponseId).innerText = aiReplyText;
+        } catch (err) {
+            document.getElementById(aiResponseId).innerText = "❌ Error! Check your configuration or API key limits.";
+            document.getElementById(aiResponseId).style.color = "#ef4444";
+        }
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 </script>
 </body>
