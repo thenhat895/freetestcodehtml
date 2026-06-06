@@ -1,178 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Nexus - Fixed CORS</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure AI Nexus</title>
+    <script src="https://cloudflare.com"></script>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        * { box-sizing: border-box; font-family: sans-serif; }
         body { background: #0b0f19; color: #fff; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
         .box { background: #111827; padding: 12px; border-radius: 16px; border: 1px solid #1f2937; display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-        h3 { margin: 0 0 10px 0; color: #6366f1; text-align: center; font-size: 18px; font-weight: bold; }
-        label { font-size: 11px; color: #9ca3af; display: block; margin-top: 4px; font-weight: 600; text-transform: uppercase; }
+        h3 { margin: 0 0 10px 0; color: #6366f1; text-align: center; font-size: 18px; }
+        label { font-size: 11px; color: #9ca3af; display: block; margin-top: 4px; font-weight: bold; }
         input, select, textarea { width: 100%; padding: 8px 10px; margin: 2px 0 6px 0; background: #111827; border: 1px solid #374151; border-radius: 8px; color: #fff; font-size: 13px; }
         button { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; font-weight: bold; border: none; padding: 10px; border-radius: 8px; cursor: pointer; }
-        #chat-box { flex: 1; border: 1px solid #1f2937; border-radius: 12px; overflow-y: auto; padding: 10px; background: #0b0f19; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-        .msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; font-size: 13px; word-wrap: break-word; line-height: 1.45; }
-        .user { background: #6366f1; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .ai { background: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid #374151; color: #f3f4f6; }
-        .input-area { display: flex; gap: 6px; }
+        #chat-box { flex: 1; border: 1px solid #1f2937; border-radius: 12px; overflow-y: auto; padding: 10px; background: #0b0f19; display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 13px; word-wrap: break-word; }
+        .user { background: #6366f1; align-self: flex-end; }
+        .ai { background: #1f2937; align-self: flex-start; border: 1px solid #374151; }
+        .input-area { display: flex; gap: 6px; margin-top: 8px; }
         .input-area textarea { flex: 1; height: 40px; resize: none; margin: 0; }
-        .btn-send { background: #10b981; width: 65px; padding: 0; }
-        #status { font-size: 12px; text-align: center; margin: 2px 0 6px 0; font-weight: bold; }
+        #share-url { background: #1f2937; padding: 8px; border-radius: 6px; font-size: 11px; color: #34d399; word-break: break-all; margin-bottom: 6px; display: none; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h3>AI NEXUS</h3>
-    
-    <label>Select Preset AI:</label>
-    <select id="preset" onchange="updatePreset()">
-        <option value="gemini">GEMINI (Google)</option>
-        <option value="openai">OPENAI (ChatGPT)</option>
-        <option value="groq">GROQ (Fast Llama)</option>
-        <option value="deepseek">DEEPSEEK (Chat)</option>
-        <option value="custom">CUSTOM ENDPOINT</option>
-    </select>
-    
-    <label>API Endpoint:</label>
-    <input type="text" id="endpoint" placeholder="API Endpoint">
-    
-    <label>Model Name:</label>
+    <h3>SECURE AI NEXUS</h3>
+    <div id="share-url" onclick="navigator.clipboard.writeText(this.innerText);alert('Copied link!')"></div>
+
+    <select id="preset" onchange="update()"></select>
+    <input type="text" id="endpoint" placeholder="Endpoint">
     <input type="text" id="model" placeholder="Model Name">
+    <input type="password" id="key" placeholder="Enter API Key">
+    <input type="password" id="pass" placeholder="Enter Password to Protect Key">
+    <textarea id="prompt" rows="1">You are a helpful AI assistant.</textarea>
     
-    <label>API Key:</label>
-    <input type="password" id="key" placeholder="Enter your real API Key">
-    
-    <label>System Prompt:</label>
-    <textarea id="prompt" rows="1" placeholder="System Prompt">You are a helpful AI assistant.</textarea>
-    
-    <button onclick="checkKey()">Verify API Key</button>
-    <p id="status"></p>
+    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+        <button style="flex:1" onclick="check()">Verify Key</button>
+        <button style="flex:1; background:#10b981;" id="s-btn" onclick="share()">Get Secure Link</button>
+    </div>
+    <p id="status" style="font-size:11px; text-align:center; margin:2px 0; font-weight:bold;"></p>
 
     <div id="chat-box"></div>
-    
     <div class="input-area">
         <textarea id="input" placeholder="Type a message..."></textarea>
-        <button class="btn-send" onclick="sendMsg()">Send</button>
+        <button style="background:#10b981; width:65px;" onclick="send()">Send</button>
     </div>
 </div>
 
 <script>
-    const aiData = {
-        gemini: { ep: "https://googleapis.com", model: "gemini-1.5-flash" },
-        openai: { ep: "https://openai.com", model: "gpt-4o-mini" },
-        groq: { ep: "https://groq.com", model: "llama-3.3-70b-versatile" },
-        deepseek: { ep: "https://deepseek.com", model: "deepseek-chat" },
-        custom: { ep: "", model: "" }
+    const ai = {
+        gemini: ["https://googleapis.com", "gemini-1.5-flash"],
+        openai: ["https://openai.com", "gpt-4o-mini"],
+        groq: ["https://groq.com", "llama-3.3-70b-versatile"],
+        deepseek: ["https://deepseek.com", "deepseek-chat"]
     };
+    const proxy = "https://corsproxy.io?", sel = document.getElementById('preset');
+    let decKey = "";
 
-    // Cổng Proxy CORS công khai để sửa lỗi chặn kết nối từ file HTML
-    const CORS_PROXY = "https://corsproxy.io?";
-
-    function updatePreset() {
-        const selected = document.getElementById('preset').value;
-        document.getElementById('endpoint').value = aiData[selected].ep;
-        document.getElementById('model').value = aiData[selected].model;
+    Object.keys(ai).forEach(k => sel.add(new Option(k.toUpperCase(), k)));
+    function update() {
+        document.getElementById('endpoint').value = ai[sel.value][0];
+        document.getElementById('model').value = ai[sel.value][1];
     }
-    
-    updatePreset();
+    update();
 
-    async function apiCall(textValue, isCheck = false) {
-        const provider = document.getElementById('preset').value;
-        const apiKey = document.getElementById('key').value.trim();
-        const apiEndpoint = document.getElementById('endpoint').value.trim();
-        const modelName = document.getElementById('model').value.trim();
-        const systemPrompt = document.getElementById('prompt').value;
-
-        if (!apiKey) {
-            alert("Please input your API Key first!");
-            throw new Error("Missing Key");
-        }
-
-        let rawUrl = apiEndpoint;
-        let headersList = { "Content-Type": "application/json" };
-        let requestBody = {};
-
-        if (provider === 'gemini') {
-            rawUrl = `${apiEndpoint}${modelName}:generateContent?key=${apiKey}`;
-            requestBody = {
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                contents: [{ parts: [{ text: textValue }] }]
-            };
-        } else {
-            headersList["Authorization"] = `Bearer ${apiKey}`;
-            requestBody = {
-                model: modelName,
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: textValue }
-                ]
-            };
-        }
-
-        // Bọc đường link gốc qua CORS Proxy để không bị chặn lỗi mạng
-        const finalUrl = CORS_PROXY + encodeURIComponent(rawUrl);
-
-        const response = await fetch(finalUrl, {
-            method: 'POST',
-            headers: headersList,
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || "HTTP Error " + response.status);
-        }
-
-        const resultData = await response.json();
-        if (isCheck) return true;
-
-        if (provider === 'gemini') {
-            return resultData.candidates[0].content.parts[0].text;
-        } else {
-            return resultData.choices[0].message.content;
-        }
-    }
-
-    async function checkKey() {
-        const statusLabel = document.getElementById('status');
-        statusLabel.innerText = "⏳ Verifying via Proxy Server...";
-        statusLabel.style.color = "#9ca3af";
-        try {
-            const success = await apiCall("hi", true);
-            if (success) {
-                statusLabel.innerText = "✅ Verification Success! Ready to chat.";
-                statusLabel.style.color = "#10b981";
+    async function load() {
+        const id = new URLSearchParams(window.location.search).get('p');
+        if (!id) return;
+        document.getElementById('status').innerText = "⏳ Loading configuration...";
+        const res = await fetch(`https://kvbin.com{id}`);
+        if (res.ok) {
+            const data = await res.json();
+            sel.value = data.p; update();
+            document.getElementById('endpoint').value = data.ep;
+            document.getElementById('model').value = data.m;
+            document.getElementById('prompt').value = data.pr;
+            const p = prompt("Enter secret password to unlock AI Chat:");
+            if (p) {
+                try {
+                    decKey = CryptoJS.AES.decrypt(data.ek, p).toString(CryptoJS.enc.Utf8);
+                    if (decKey) {
+                        document.getElementById('status').innerText = "✅ Unlocked!";
+                        document.getElementById('key').value = "PROTECTED";
+                        document.getElementById('pass').value = p;
+                    } else { document.getElementById('status').innerText = "❌ Wrong Password!"; }
+                } catch(e) { document.getElementById('status').innerText = "❌ Error!"; }
             }
-        } catch (err) {
-            statusLabel.innerText = "❌ Verification Failed! Error: " + err.message;
-            statusLabel.style.color = "#ef4444";
         }
     }
+    load();
 
-    async function sendMsg() {
-        const inputField = document.getElementById('input');
-        const chatBox = document.getElementById('chat-box');
-        const messageText = inputField.value.trim();
+    async function call(txt, isChk = false) {
+        const p = sel.value, ep = document.getElementById('endpoint').value, m = document.getElementById('model').value, pr = document.getElementById('prompt').value;
+        const k = decKey || document.getElementById('key').value;
+        const isGem = p === 'gemini', url = isGem ? `${ep}${m}:generateContent?key=${k}` : ep;
+        const body = isGem ? { systemInstruction: { parts: [{ text: pr }] }, contents: [{ parts: [{ text: txt }] }] } : { model: m, messages: [{ role: "system", content: pr }, { role: "user", content: txt }] };
+        const headers = { "Content-Type": "application/json", ...(!isGem && { "Authorization": `Bearer ${k}` }) };
         
-        if (!messageText) return;
-        inputField.value = ""; 
+        const res = await fetch(proxy + encodeURIComponent(url), { method: 'POST', headers: headers, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error();
+        const resData = await res.json();
+        return isChk ? true : (isGem ? resData.candidates[0].content.parts[0].text : resData.choices[0].message.content);
+    }
+
+    async function check() {
+        const st = document.getElementById('status'); st.innerText = "⏳ Verifying...";
+        try { if (await call("hi", true)) st.innerText = "✅ Key is valid!"; } 
+        catch { st.innerText = "❌ Verification Failed!"; }
+    }
+
+    async function share() {
+        const k = decKey || document.getElementById('key').value, p = document.getElementById('pass').value;
+        if (!k || !p) return alert("Enter Key and Password first!");
+        const sBtn = document.getElementById('s-btn'); sBtn.innerText = "⏳ Saving...";
         
-        chatBox.innerHTML += `<div class="msg user">${messageText}</div>`;
-        const aiResponseId = "ai-" + Date.now();
-        chatBox.innerHTML += `<div class="msg ai" id="${aiResponseId}">⚡ Thinking...</div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        const config = { p: sel.value, ep: document.getElementById('endpoint').value, m: document.getElementById('model').value, pr: document.getElementById('prompt').value, ek: CryptoJS.AES.encrypt(k, p).toString() };
+        const id = new URLSearchParams(window.location.search).get('p');
+        const res = await fetch(id ? `https://kvbin.com{id}` : "https://kvbin.com", { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(config) });
         
-        try {
-            const aiReplyText = await apiCall(messageText, false);
-            document.getElementById(aiResponseId).innerText = aiReplyText;
-        } catch (err) {
-            document.getElementById(aiResponseId).innerText = "❌ Error: " + err.message;
-            document.getElementById(aiResponseId).style.color = "#ef4444";
-        }
-        chatBox.scrollTop = chatBox.scrollHeight;
+        if (res.ok) {
+            const finalId = id || (await res.json()).id;
+            const lnk = `${window.location.origin}${window.location.pathname}?p=${finalId}`;
+            window.history.pushState({}, '', lnk);
+            const box = document.getElementById('share-url'); box.innerText = lnk; box.style.display = "block";
+        } else { alert("Save failed!"); }
+        sBtn.innerText = "Get Secure Link";
+    }
+
+    async function send() {
+        const inp = document.getElementById('input'), box = document.getElementById('chat-box'), txt = inp.value.trim();
+        if (!txt) return; inp.value = "";
+        box.innerHTML += `<div class="msg user">${txt}</div><div class="msg ai" id="last">⚡ Thinking...</div>`;
+        box.scrollTop = box.scrollHeight;
+        try { const reply = await call(txt); document.getElementById('last').innerText = reply; } 
+        catch { document.getElementById('last').innerText = "❌ Chat Error!"; }
+        document.getElementById('last').removeAttribute('id');
+        box.scrollTop = box.scrollHeight;
     }
 </script>
 </body>
