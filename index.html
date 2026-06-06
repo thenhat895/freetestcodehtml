@@ -1,64 +1,269 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>JuniorAI Tester Pro V4</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexAI Tester - Multi-Model API Hub</title>
     <style>
-        body { background: #090d16; color: #f1f5f9; font-family: system-ui; display: flex; justify-content: center; padding: 20px; }
-        .main { background: #131c2e; padding: 25px; border-radius: 16px; width: 100%; max-width: 550px; border: 1px solid #1e293b; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 12px; background: #090d16; border: 1px solid #334155; color: white; border-radius: 8px; box-sizing: border-box; }
-        .btn { background: #38bdf8; color: #090d16; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; }
-        #log { margin-top: 15px; padding: 12px; border-left: 4px solid #334155; background: #090d16; display: none; font-size: 13px; }
-        .chat-box-real { margin-top: 20px; display: none; border-top: 1px solid #334155; padding-top: 15px; }
-        .view { height: 180px; background: #090d16; border-radius: 8px; padding: 10px; overflow-y: auto; margin-bottom: 10px; font-size: 13px; }
-        .m-u { background: #1e293b; padding: 6px 10px; border-radius: 6px; width: fit-content; margin-left: auto; margin-bottom: 8px; text-align: right; max-width: 80%; }
-        .m-a { background: rgba(56,189,248,0.1); color: #38bdf8; padding: 6px 10px; border-radius: 6px; width: fit-content; margin-bottom: 8px; max-width: 80%; }
+        :root {
+            --bg: #090d16;
+            --card: #131c2e;
+            --text: #f1f5f9;
+            --sub-text: #64748b;
+            --primary: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --success: #4ade80;
+            --danger: #f87171;
+            --border: #1e293b;
+            --input-bg: #090d16;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .main-container {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        h2 { text-align: center; color: var(--primary); margin: 0 0 5px 0; font-size: 26px; }
+        .tagline { text-align: center; color: var(--sub-text); font-size: 13px; margin: 0 0 25px 0; }
+        .field-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #94a3b8; }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--input-bg);
+            border: 1px solid #334155;
+            color: white;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; }
+        textarea { resize: vertical; height: 70px; font-family: inherit; }
+        .btn {
+            background: var(--primary);
+            color: var(--bg);
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: var(--primary-hover); }
+        .btn:disabled { background: var(--sub-text); cursor: not-allowed; }
+        #statusLog {
+            margin-top: 15px;
+            padding: 12px;
+            border-left: 4px solid #334155;
+            background: var(--input-bg);
+            display: none;
+            font-size: 13px;
+            border-radius: 4px;
+        }
+        .chat-section { margin-top: 25px; border-top: 1px solid var(--border); padding-top: 20px; display: none; }
+        .chat-title { font-size: 16px; color: var(--primary); margin-bottom: 12px; font-weight: bold; }
+        .view-panel { height: 220px; background: var(--input-bg); border-radius: 8px; padding: 12px; overflow-y: auto; margin-bottom: 12px; border: 1px solid var(--border); }
+        .msg { padding: 8px 12px; border-radius: 8px; width: fit-content; max-width: 85%; margin-bottom: 10px; font-size: 13px; line-height: 1.4; word-break: break-word; }
+        .msg-user { background: #1e293b; margin-left: auto; text-align: left; }
+        .msg-ai { background: rgba(56, 189, 248, 0.1); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.2); }
+        .msg-error { background: rgba(248, 113, 113, 0.1); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.2); }
+        .chat-controls { display: flex; gap: 8px; }
+        .chat-controls input { margin: 0; }
+        .chat-controls .btn { width: 90px; padding: 0; }
     </style>
 </head>
 <body>
-    <div class="main">
-        <h2 style="color:#38bdf8; text-align:center; margin:0 0 5px 0;">⚡ JuniorAI Tester - V4</h2>
-        <p style="text-align:center; color:#64748b; font-size:12px; margin:0 0 20px 0;">Hệ thống Kết Nối AI Thật Qua Vercel Server</p>
-        
-        <select id="sel"><option value="https://openai.com">OpenAI ChatGPT API</option></select>
-        <input type="password" id="pass" placeholder="Nhập API Key thật vào đây">
-        <button class="btn" onclick="verify()">🔍 Kích Hoạt Hệ Thống Thật</button>
-        
-        <div id="log"></div>
 
-        <div class="chat-box-real" id="boxReal">
-            <div class="view" id="v"></div>
-            <div style="display: flex; gap: 8px;">
-                <input type="text" id="t" placeholder="Hỏi AI thật câu gì đó đi..." style="margin:0;">
-                <button class="btn" style="width:80px; padding:0;" onclick="ask()">Gửi</button>
-            </div>
+<div class="main-container">
+    <h2>⚡ NexAI Tester</h2>
+    <div class="tagline">Global Multi-Model API Validator & Playground</div>
+    
+    <div class="field-group">
+        <label>Select AI Provider:</label>
+        <select id="provider" onchange="onProviderChange()">
+            <option value="https://openai.com">OpenAI (ChatGPT)</option>
+            <option value="https://googleapis.com">Google Gemini (OpenAI Endpoint)</option>
+            <option value="https://groq.com">Groq Cloud</option>
+            <option value="custom">Custom Endpoint...</option>
+        </select>
+    </div>
+
+    <div class="field-group" id="customEndpointGroup" style="display: none;">
+        <label>Custom API Endpoint URL:</label>
+        <input type="text" id="customUrl" placeholder="https://your-custom-proxy.com">
+    </div>
+
+    <div class="field-group">
+        <label>API Secret Key:</label>
+        <input type="password" id="apiKey" placeholder="Paste your api key here (sk-...)">
+    </div>
+
+    <div class="field-group">
+        <label>System Prompt (AI Persona):</label>
+        <textarea id="systemPrompt" placeholder="Optional: e.g., You are a helpful assistant who speaks like a pirate."></textarea>
+    </div>
+
+    <button class="btn" id="verifyBtn" onclick="verifyAPI()">🔍 Verify & Activate Chat</button>
+    
+    <div id="statusLog"></div>
+
+    <div class="chat-section" id="chatSection">
+        <div class="chat-title">💬 Live Chat Playground</div>
+        <div class="view-panel" id="chatView"></div>
+        <div class="chat-controls">
+            <input type="text" id="chatInput" placeholder="Type a message to test the AI...">
+            <button class="btn" id="sendBtn" onclick="sendMessage()">Send</button>
         </div>
     </div>
-    <script>
-        let history = [];
-        async function verify() {
-            const key = document.getElementById('pass').value;
-            const log = document.getElementById('log');
-            if(!key) return alert('Vui lòng điền Key!');
-            log.style.display = 'block'; log.innerText = '⏳ Đang truyền dữ liệu qua Backend Vercel...';
-            try {
-                const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiUrl: document.getElementById('sel').value, apiKey: key, testMode: true }) });
-                if(res.ok) { log.innerHTML = '<b style="color:#4ade80">✅ THÀNH CÔNG!</b> Khung chat thật đã mở.'; document.getElementById('boxReal').style.display='block'; document.getElementById('v').innerHTML='<div class="m-a">🤖 AI Thật: Chào bạn! Mình đã kết nối thành công. Bạn muốn hỏi gì?</div>'; history=[]; }
-                else { log.innerHTML = '<b style="color:#f87171">❌ THẤT BẠI!</b> Key sai hoặc hết tiền rồi.'; }
-            } catch(e) { log.innerHTML = '<b style="color:#f87171">💥 LỖI:</b> Hãy chắc chắn bạn đã tạo file api/chat.js trên Vercel.'; }
+</div>
+<script>
+let messageHistory = [];
+
+function onProviderChange() {
+    const provider = document.getElementById('provider').value;
+    const customGroup = document.getElementById('customEndpointGroup');
+    customGroup.style.display = (provider === 'custom') ? 'block' : 'none';
+}
+
+function getActiveUrl() {
+    const provider = document.getElementById('provider').value;
+    return (provider === 'custom') ? document.getElementById('customUrl').value.trim() : provider;
+}
+
+function getModelName() {
+    const url = getActiveUrl();
+    if (url.includes('openai.com')) return 'gpt-3.5-turbo';
+    if (url.includes('googleapis.com')) return 'gemini-1.5-flash';
+    if (url.includes('groq.com')) return 'llama3-8b-8192';
+    return 'gpt-3.5-turbo';
+}
+
+async function verifyAPI() {
+    const apiUrl = getActiveUrl();
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const systemPrompt = document.getElementById('systemPrompt').value.trim();
+    const log = document.getElementById('statusLog');
+    const chatSection = document.getElementById('chatSection');
+    const verifyBtn = document.getElementById('verifyBtn');
+
+    if (!apiKey || !apiUrl) {
+        alert('Please fill in both the Endpoint URL and API Key!');
+        return;
+    }
+
+    verifyBtn.disabled = true;
+    log.style.display = 'block';
+    log.style.borderLeftColor = '#38bdf8';
+    log.innerHTML = '⏳ Routing handshake via secure backend...';
+
+    messageHistory = [];
+    if (systemPrompt) {
+        messageHistory.push({ role: "system", content: systemPrompt });
+    }
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                apiUrl: apiUrl,
+                apiKey: apiKey,
+                messages: [{ role: "user", content: "ping" }],
+                testMode: true,
+                model: getModelName()
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            log.style.borderLeftColor = '#4ade80';
+            log.innerHTML = `<b style="color:#4ade80">✅ SUCCESS!</b> API connection established. Terminal playground is now online.`;
+            chatSection.style.display = 'block';
+            document.getElementById('chatView').innerHTML = `<div class="msg msg-ai">🤖 <b>AI Terminal:</b> Secure connection successful. Ready to receive prompts!</div>`;
+        } else {
+            log.style.borderLeftColor = '#f87171';
+            log.innerHTML = `<b style="color:#f87171">❌ AUTHENTICATION FAILED:</b><br><small>${data.error?.message || 'Invalid key, wrong endpoint, or zero balance.'}</small>`;
+            chatSection.style.display = 'none';
         }
-        async function ask() {
-            const inp = document.getElementById('t'); const v = document.getElementById('v'); const txt = inp.value.trim(); if(!txt) return;
-            v.innerHTML += `<div class="m-u">${txt}</div>`; history.push({role:"user", content:txt}); inp.value = ''; v.scrollTop = v.scrollHeight;
-            const lid = "l-" + Date.now(); v.innerHTML += `<div class="m-a" id="${lid}">🤖 AI đang nghĩ...</div>`;
-            try {
-                const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiUrl: document.getElementById('sel').value, apiKey: document.getElementById('pass').value, messages: history, testMode: false }) });
-                const d = await res.json(); document.getElementById(lid).remove();
-                if(res.ok) { const reply = d.choices[0].message.content; v.innerHTML += `<div class="m-a">🤖 ${reply}</div>`; history.push({role:"assistant", content:reply}); }
-                else { v.innerHTML += `<div style="color:#f87171;margin-bottom:8px;">❌ Lỗi: ${d.error?.message || 'Không lấy được phản hồi'}</div>`; }
-            } catch(e) { document.getElementById(lid).remove(); v.innerHTML += `<div style="color:#f87171;margin-bottom:8px;">💥 Mất mạng rồi!</div>`; }
-            v.scrollTop = v.scrollHeight;
+    } catch (e) {
+        log.style.borderLeftColor = '#f87171';
+        log.innerHTML = `<b style="color:#f87171">💥 SERVER ERROR:</b> Unable to reach proxy backend. Ensure api/chat.js deployment is complete.`;
+        chatSection.style.display = 'none';
+    } finally {
+        verifyBtn.disabled = false;
+    }
+}
+    async function sendMessage() {
+    const apiUrl = getActiveUrl();
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const input = document.getElementById('chatInput');
+    const view = document.getElementById('chatView');
+    const sendBtn = document.getElementById('sendBtn');
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    // Hiển thị tin nhắn của người dùng lên màn hình chat
+    view.innerHTML += `<div class="msg msg-user">${text}</div>`;
+    messageHistory.push({ role: "user", content: text });
+    input.value = '';
+    view.scrollTop = view.scrollHeight;
+
+    // Tạo trạng thái AI đang tải/suy nghĩ
+    const loadingId = "loader-" + Date.now();
+    view.innerHTML += `<div class="msg msg-ai" id="${loadingId}">🤖 Thinking...</div>`;
+    view.scrollTop = view.scrollHeight;
+    sendBtn.disabled = true;
+
+    try {
+        // Gửi toàn bộ lịch sử hội thoại lên Backend Serverless để phản hồi thực tế
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                apiUrl: apiUrl,
+                apiKey: apiKey,
+                messages: messageHistory,
+                testMode: false,
+                model: getModelName()
+            })
+        });
+
+        const data = await response.json();
+        document.getElementById(loadingId).remove(); // Xóa dòng chữ "Thinking..."
+
+        if (response.ok) {
+            const aiReply = data.choices.message.content;
+            view.innerHTML += `<div class="msg msg-ai">${aiReply.replace(/\n/g, '<br>')}</div>`;
+            messageHistory.push({ role: "assistant", content: aiReply });
+        } else {
+            view.innerHTML += `<div class="msg msg-error">❌ <b>API Error:</b> ${data.error?.message || 'Failed to fetch response.'}</div>`;
         }
-    </script>
+    } catch (e) {
+        document.getElementById(loadingId).remove();
+        view.innerHTML += `<div class="msg msg-error">💥 <b>Network Error:</b> Lost connection to the secure server.</div>`;
+    } finally {
+        sendBtn.disabled = false;
+        view.scrollTop = view.scrollHeight;
+    }
+}
+</script>
 </body>
 </html>
