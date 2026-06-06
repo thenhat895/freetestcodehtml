@@ -1,147 +1,102 @@
-<!DOCTYPE html>
-<html lang="en">
+    <!DOCTYPE html>
+<html lang="vi">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure HTML Previewer</title>
-    <script src="https://cloudflare.com"></script>
+    <meta charset="UTF-8">
+    <title>Canvas HTML OS Platform</title>
     <style>
-        * { box-sizing: border-box; font-family: sans-serif; }
-        body { background: #0b0f19; color: #fff; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
-        .box { background: #111827; padding: 12px; border-radius: 16px; border: 1px solid #1f2937; display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-        h3 { margin: 0 0 10px 0; color: #6366f1; text-align: center; font-size: 18px; }
-        label { font-size: 11px; color: #9ca3af; display: block; margin-bottom: 4px; font-weight: bold; }
-        textarea, input { width: 100%; padding: 10px; background: #1f2937; border: 1px solid #374151; border-radius: 8px; color: #fff; font-size: 13px; }
-        textarea { flex: 1; min-height: 120px; color: #34d399; font-family: monospace; resize: none; }
-        input { margin-bottom: 8px; border-color: #6366f1; }
-        .btn-group { display: flex; gap: 6px; margin: 8px 0; }
-        button { flex: 1; padding: 10px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 12px; }
-        .btn-clear { background: #ef4444; }
-        .btn-full { background: #6366f1; }
-        .btn-share { background: #10b981; }
-        #preview-container { flex: 1.2; background: #fff; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
-        iframe { width: 100%; flex: 1; border: none; background: #fff; }
-        .fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 9999; }
-        .close-full { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 6px 12px; border-radius: 6px; display: none; z-index: 10000; }
-        #share-url { background: #1f2937; padding: 8px; border-radius: 6px; font-size: 11px; color: #34d399; word-break: break-all; margin-bottom: 6px; display: none; text-align: center; font-weight: bold; }
+        body { display: flex; height: 100vh; margin: 0; background: #1e1e24; color: #fff; font-family: sans-serif; }
+        .sidebar { width: 320px; background: #111; padding: 15px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        input, textarea { width: 100%; padding: 6px; background: #2d2d38; border: 1px solid #444; color: #fff; border-radius: 4px; }
+        textarea { height: 100px; font-family: monospace; }
+        button { width: 100%; padding: 8px; background: #00adb5; border: none; color: #fff; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #00f5ff; }
+        .main { flex: 1; display: flex; flex-direction: column; }
+        .workspace { flex: 1; display: flex; position: relative; background: #141419; }
+        canvas { flex: 1; background: #222; cursor: crosshair; border-right: 1px solid #444; }
+        iframe { flex: 1; border: none; background: #fff; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h3>SECURE HTML PREVIEW</h3>
-    <div id="share-url" onclick="navigator.clipboard.writeText(this.innerText);alert('Copied link!')"></div>
+    <div class="sidebar">
+        <h3>🔑 HỆ THỐNG APP</h3>
+        <label>IP Máy: <input type="text" id="ip" value="192.168.1.1" readonly></label>
+        <label>Secret Key: <input type="text" id="key" placeholder="Nhập key bảo mật"></label>
+        <button onclick="createApp()">🚀 Tạo App Mới</button>
+        <button onclick="updateApp()" style="background:#393e46">🔄 Cập Nhật App</button>
+        <p id="share" style="color:#00adb5; font-size:12px; word-break:break-all;"></p>
 
-    <div id="editor-area">
-        <label>PASSWORD TO PROTECT CODE (SECRET):</label>
-        <input type="password" id="password" placeholder="••••••••">
-        <label>WRITE YOUR HTML CODE HERE:</label>
-        <textarea id="code" oninput="runCode()" placeholder="Type HTML code here..."></textarea>
+        <h3>🎨 CANVAS & CODE HTML</h3>
+        <label>Màu vẽ: <input type="color" id="color" value="#00adb5"></label>
+        <textarea id="code" oninput="render()"><!-- Code mẫu gọi OS -->
+<div style="padding:20px; text-align:center;">
+  <h2>My Mini App</h2>
+  <button onclick="window.parent.postMessage('OS_HELLO', '*')" style="padding:10px; background:#00adb5; color:#fff; border:none; border-radius:4px;">Gọi Lệnh OS</button>
+</div></textarea>
+
+        <h3>📦 KVBIN STORAGE</h3>
+        <input type="text" id="kv-k" placeholder="Key">
+        <input type="text" id="kv-v" placeholder="Value">
+        <button onclick="alert('Đã lưu dữ liệu vào KVBin tạm thời!')" style="background:#393e46">Lưu KV</button>
     </div>
 
-    <div class="btn-group">
-        <button class="btn-clear" id="clear-btn" onclick="clearCode()">Clear</button>
-        <button class="btn-share" id="share-btn" onclick="shareCode()">Get Share Link</button>
-        <button class="btn-full" onclick="toggleFull()">Full Screen</button>
+    <div class="main">
+        <div style="padding: 10px; background: #1a1a24;">Trạng thái: <span id="status" style="color:red">Chưa tạo</span></div>
+        <div class="workspace">
+            <canvas id="canvas"></canvas>
+            <iframe id="preview"></iframe>
+        </div>
     </div>
 
-    <label>LIVE PREVIEW RESULT:</label>
-    <div id="preview-container">
-        <button id="close-btn" class="close-full" onclick="toggleFull()">Exit Full Screen</button>
-        <iframe id="output"></iframe>
-    </div>
-</div>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false, db = {}, currentId = null;
 
-<script>
-    const codeArea = document.getElementById('code'), outputFrame = document.getElementById('output');
-    const container = document.getElementById('preview-container'), closeBtn = document.getElementById('close-btn');
-    const shareUrlDiv = document.getElementById('share-url'), shareBtn = document.getElementById('share-btn');
-    const passInput = document.getElementById('password'), editorArea = document.getElementById('editor-area');
+        // Cấu hình kích thước Canvas tự động
+        function initCanvas() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
+        window.onresize = initCanvas; setTimeout(initCanvas, 100);
 
-    const defaultCode = `<div style="text-align:center; margin-top:30px; font-family:sans-serif;">
-    <h1 style="color:#6366f1;">Protected View! 🔐</h1>
-    <p style="color:#555;">The source code of this page is completely hidden from F12.</p>
-</div>`;
+        // Logic vẽ tự do trên Canvas
+        canvas.onmousedown = () => drawing = true;
+        canvas.onmouseup = () => { drawing = false; ctx.beginPath(); };
+        canvas.onmousemove = (e) => {
+            if (!drawing) return;
+            ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.strokeStyle = document.getElementById('color').value;
+            const r = canvas.getBoundingClientRect();
+            ctx.lineTo(e.clientX - r.left, e.clientY - r.top); ctx.stroke(); ctx.beginPath(); ctx.moveTo(e.clientX - r.left, e.clientY - r.top);
+        };
 
-    function render(htmlText) {
-        const frameDoc = outputFrame.contentDocument || outputFrame.contentWindow.document;
-        frameDoc.open(); frameDoc.write(htmlText); frameDoc.close();
-    }
-
-    function runCode() {
-        render(codeArea.value);
-        localStorage.setItem('saved_html_code', codeArea.value);
-    }
-
-    async function loadSharedCode() {
-        const id = new URLSearchParams(window.location.search).get('p');
-        if (id) {
-            render("<h3 style='color:#000;text-align:center;margin-top:20px;'>⏳ Loading secure view...</h3>");
-            try {
-                const res = await fetch(`https://kvbin.com{id}`);
-                if (res.ok) {
-                    let rawData = await res.text();
-                    if (rawData.startsWith("U2FsdGVkX1")) {
-                        const userPass = prompt("Enter secret password to view this web interface:");
-                        if (userPass) {
-                            try {
-                                const decryptedData = CryptoJS.AES.decrypt(rawData, userPass).toString(CryptoJS.enc.Utf8);
-                                if (decryptedData) {
-                                    // ẨN TOÀN BỘ KHUNG NHẬP CODE VÀ NÚT CHIA SẺ ĐỂ CHỐNG XEM TRỘM
-                                    editorArea.style.display = "none";
-                                    shareBtn.style.display = "none";
-                                    document.getElementById('clear-btn').style.display = "none";
-                                    render(decryptedData); // Chỉ nạp thẳng kết quả cho xem
-                                    return;
-                                }
-                            } catch (e) {}
-                        }
-                        render("<h3 style='color:red;text-align:center;margin-top:20px;'>❌ Access Denied: Wrong Password!</h3>");
-                    } else { codeArea.value = rawData; editorArea.style.display = "block"; runCode(); }
-                } else { render("❌ Link not found!"); }
-            } catch (err) { render("❌ Network error."); }
-        } else {
-            const savedCode = localStorage.getItem('saved_html_code');
-            codeArea.value = savedCode !== null ? savedCode : defaultCode;
-            editorArea.style.display = "block";
-            runCode();
+        // Render HTML tự động vào Iframe
+        function render() {
+            const blob = new Blob([document.getElementById('code').value], { type: 'text/html' });
+            document.getElementById('preview').src = URL.createObjectURL(blob);
         }
-    }
-    loadSharedCode();
+        render();
 
-    async function shareCode() {
-        let codeText = codeArea.value.trim(); if (!codeText) return alert("Code is empty!");
-        const password = passInput.value.trim();
-        if (password) { codeText = CryptoJS.AES.encrypt(codeText, password).toString(); }
+        // Giả lập OS nhận tín hiệu từ App con gửi ra ngoài
+        window.onmessage = (e) => { if(e.data === 'OS_HELLO') alert('🖥️ OS Core thông báo: Nhận tín hiệu từ App thành công!'); };
 
-        shareBtn.innerText = "⏳ Hiding & Saving..."; shareBtn.disabled = true;
-        const urlParams = new URLSearchParams(window.location.search);
-        let currentId = urlParams.get('p');
-        let url = "https://kvbin.com", method = "POST";
-        if (currentId) { url = `https://kvbin.com{currentId}`; method = "PUT"; }
+        // Xử lý logic Tạo & Cập nhật kiểm tra IP + Secret Key
+        function createApp() {
+            const key = document.getElementById('key').value;
+            if(!key) return alert("Vui lòng điền Secret Key trước!");
+            currentId = 'id_' + Math.random().toString(36).substr(2, 5);
+            db[currentId] = { html: document.getElementById('code').value, ip: '192.168.1.1', key: key };
+            document.getElementById('status').innerText = "Đã hoạt động"; document.getElementById('status').style.color = "#00adb5";
+            document.getElementById('share').innerText = "🔗 Link Share ID: https://os-bin.dev" + currentId;
+        }
 
-        try {
-            const res = await fetch(url, { method: method, headers: { "Content-Type": "text/plain" }, body: codeText });
-            if (res.ok) {
-                let finalId = currentId;
-                if (!currentId) { const data = await res.json(); finalId = data.id; }
-                const shareLink = `${window.location.origin}${window.location.pathname}?p=${finalId}`;
-                window.history.pushState({}, '', shareLink);
-                shareUrlDiv.innerText = shareLink; shareUrlDiv.style.display = "block";
-            } else { alert("Error saving!"); }
-        } catch (err) { alert("Network error!"); }
-        shareBtn.innerText = "Get Share Link"; shareBtn.disabled = false;
-    }
-
-    function clearCode() {
-        codeArea.value = ""; passInput.value = ""; localStorage.setItem('saved_html_code', "");
-        window.history.pushState({}, '', window.location.pathname); shareUrlDiv.style.display = "none";
-        runCode(); codeArea.focus();
-    }
-
-    function toggleFull() {
-        container.classList.toggle('fullscreen');
-        closeBtn.style.display = container.classList.contains('fullscreen') ? 'block' : 'none';
-    }
-</script>
+        function updateApp() {
+            if(!currentId) return alert("Chưa có app nào được tạo!");
+            const key = document.getElementById('key').value;
+            if(db[currentId].key === key && db[currentId].ip === '192.168.1.1') {
+                db[currentId].html = document.getElementById('code').value;
+                alert("🔄 Cập nhật app thành công!");
+            } else {
+                alert("❌ Sai Secret Key hoặc IP chỉnh sửa không hợp lệ!");
+            }
+        }
+    </script>
 </body>
 </html>
